@@ -1,99 +1,215 @@
-# ✋ Air Typing System
+# 🌟 SANSKAR – AI-Based Age-Adaptive Child Learning Platform
 
-Real-time hands-free virtual keyboard using computer vision and hand gesture recognition.
-Type in mid-air — no physical keyboard needed.
+> Safe • Smart • Age-Appropriate • Child-First
 
 ---
 
-## How It Works
+## 📋 Project Overview
+
+SANSKAR is a full-stack web application that provides curated, age-filtered educational content to children aged 2–14. Every piece of content is filtered by the child's age, pulled only from pre-approved YouTube channels, and monitored through a hidden parent portal.
+
+---
+
+## 🏗️ Architecture
 
 ```
-Camera Feed → MediaPipe Hand Landmarks → Finger Position Tracking
-     → Virtual Keyboard Hover Detection → Pinch Gesture = Key Press
-     → Debounced Input → Live Text Display
+sanskar/
+├── backend/              ← Spring Boot (Java 17)
+│   └── src/main/java/com/sanskar/
+│       ├── controller/   ← AuthController, ContentController, ParentController
+│       ├── service/      ← UserService, VideoService, RecommendationService
+│       ├── model/        ← User, Video, VideoHistory, SearchHistory, Category
+│       ├── repository/   ← JPA repositories
+│       ├── security/     ← JwtUtil, JwtAuthFilter
+│       └── config/       ← SecurityConfig, GlobalExceptionHandler
+│
+├── frontend/             ← React + Vite
+│   └── src/
+│       ├── pages/        ← LoginPage, SignupPage, Dashboard, VideoPage,
+│       │                    SearchPage, CategoryPage, ParentPortal
+│       ├── components/   ← Navbar, VideoCard
+│       ├── store/        ← Zustand auth store
+│       ├── utils/        ← Axios API client
+│       └── styles/       ← global.css (design tokens, animations)
+│
+└── database/
+    └── schema.sql        ← Complete MySQL schema
 ```
 
-### Gesture Controls
+---
 
-| Gesture | Action |
+## ⚙️ Setup Instructions
+
+### Prerequisites
+- Java 17+
+- Node.js 18+
+- MySQL 8+
+- YouTube Data API v3 key ([Get one here](https://console.cloud.google.com/))
+
+---
+
+### 1. Database Setup
+
+```sql
+-- Run the schema file
+mysql -u root -p < database/schema.sql
+```
+
+---
+
+### 2. Backend Setup
+
+```bash
+cd backend
+
+# Edit application.yml
+# Set: spring.datasource.password, youtube.api-key, jwt.secret
+
+mvn clean install
+mvn spring-boot:run
+# Runs on http://localhost:8080
+```
+
+**First Run:** Set `spring.jpa.hibernate.ddl-auto: create` in application.yml, then switch to `validate`.
+
+---
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Runs on http://localhost:3000
+```
+
+Create `.env` file:
+```
+VITE_API_URL=http://localhost:8080/api
+```
+
+---
+
+## 🔑 Key Features
+
+| Feature | How It Works |
 |---|---|
-| Point index finger | Hover/navigate over keys |
-| Pinch (thumb + index close) | Press the hovered key |
-| Hold pinch on ⌫ | Fast backspace (repeats) |
-| Hold pinch on SPACE | Fast space (repeats) |
-
-### AI / ML Components
-
-- **MediaPipe Hands** — Google's ML pipeline for real-time hand landmark detection (21 3D landmarks per hand)
-- **Pinch distance normalization** — hand-size-relative threshold so detection works at any camera distance
-- **Velocity tracking** — 6-frame position history for smooth cursor movement
-- **Gesture debouncer** — prevents accidental multi-fires with configurable cooldown + hold-repeat
+| **Age Filtering** | Every API call checks `user.age`; videos outside age range are excluded |
+| **Safe Search** | `safeSearch=strict` on all YouTube API calls + keyword blocklist |
+| **Curated Channels** | Only 10 pre-approved educational channels are ever queried |
+| **JWT Auth** | Stateless JWT with age embedded in token claims |
+| **Parent Portal** | Triggered by 3-second long-press on 🔒 icon; requires PIN on every access |
+| **Watch Tracking** | Duration + completion recorded; drives "Continue Watching" |
+| **Recommendation Engine** | Weighted scoring: category match (+3), search match (+2), channel match (+1) |
+| **Safety Content** | Age-specific safety topics always visible on dashboard |
 
 ---
 
-## Quick Start
+## 🛡️ Security Measures
 
-### Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Run
-
-```bash
-python main.py
-```
-
-### Options
-
-```bash
-python main.py --camera 0       # webcam device ID
-python main.py --width 1280     # frame width
-python main.py --height 720     # frame height
-```
+- ✅ BCrypt password hashing (strength 12)
+- ✅ BCrypt parent PIN hashing (stored separately)
+- ✅ JWT tokens expire in 24 hours
+- ✅ CORS restricted to localhost:3000
+- ✅ All YouTube results pass through blocklist filter
+- ✅ `safeSearch=strict` on all YouTube API calls
+- ✅ Parent portal re-verifies PIN on every access (no token caching)
+- ✅ Age checked on every content endpoint
 
 ---
 
-## File Structure
+## 🎨 UI Design Principles
 
-```
-air_typing/
-├── main.py          # Entry point, camera loop, key event handler
-├── air_typer.py     # Core engine: tracker, debouncer, renderer, keyboard layout
-├── requirements.txt
-└── README.md
-```
+- **Fonts:** Baloo 2 (headings) + Nunito (body) — playful but readable
+- **Colors:** Warm yellows, oranges, teals — safe and energetic
+- **Touch targets:** Min 52px height on all buttons (child-friendly)
+- **Animations:** Framer Motion spring physics — bouncy and delightful
+- **Skeleton loaders:** Shimmer effect while content loads
 
 ---
 
-## Performance Tips
+## 📡 API Endpoints
 
-- **Lighting** — bright, even light on your hand for best detection
-- **Background** — plain, non-cluttered background improves tracking
-- **Distance** — 40–70 cm from camera is optimal
-- **Speed** — type deliberately; a ~0.5s cooldown between keys prevents misfires
-
----
-
-## Tuning Parameters
-
-In `air_typer.py`:
-
-| Parameter | Default | Effect |
+### Auth
+| Method | Endpoint | Description |
 |---|---|---|
-| `min_detection_confidence` | 0.72 | Higher = fewer false detections |
-| `min_tracking_confidence` | 0.65 | Higher = more stable tracking |
-| `GestureDebouncer(cooldown)` | 0.55s | Lower = faster typing possible |
-| `HOLD_REPEAT_RATE` | 0.12s | Backspace/space hold-repeat speed |
-| Pinch threshold `< 0.28` | 0.28 | Normalized: lower = tighter pinch needed |
+| POST | `/api/auth/signup` | Register child account |
+| POST | `/api/auth/login`  | Login, receive JWT |
+
+### Content (requires JWT)
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/content/dashboard` | Personalized homepage data |
+| GET | `/api/content/categories` | Age-filtered categories |
+| GET | `/api/content/videos/{id}` | Videos in a category |
+| GET | `/api/content/search?q=` | Safe search |
+| POST | `/api/content/watch` | Record watch event |
+
+### Parent Portal (requires JWT + PIN)
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/parent/verify` | Check PIN validity |
+| POST | `/api/parent/portal` | Get full activity report |
 
 ---
 
-## Requirements
+## 🚀 YouTube API Setup
 
-- Python 3.9+
-- Webcam or USB camera
-- `opencv-python >= 4.8`
-- `mediapipe >= 0.10`
-- `numpy >= 1.24`
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project → Enable **YouTube Data API v3**
+3. Create API key → Restrict to YouTube Data API
+4. Add key to `application.yml` under `youtube.api-key`
+
+**Daily quota:** 10,000 units/day (free). Each search = ~100 units.
+
+---
+
+## 🔮 Optional Enhancements
+
+### Voice Search
+Add to Navbar.jsx:
+```javascript
+const recognition = new webkitSpeechRecognition();
+recognition.onresult = (e) => setQuery(e.results[0][0].transcript);
+recognition.start();
+```
+
+### AI Recommendations (Claude API)
+In `RecommendationService.java`, call Anthropic API with:
+- Child's age, watch history titles, search history
+- Ask for video topic suggestions
+- Use topics as YouTube search queries
+
+---
+
+## 📁 File Summary
+
+| File | Purpose |
+|---|---|
+| `database/schema.sql` | Complete MySQL schema with seed data |
+| `backend/pom.xml` | Maven dependencies |
+| `backend/.../SanskarApplication.java` | Spring Boot entry point |
+| `backend/.../model/User.java` | User entity with age group derivation |
+| `backend/.../model/Models.java` | Video, VideoHistory, SearchHistory, Category |
+| `backend/.../security/JwtUtil.java` | JWT generation and validation |
+| `backend/.../security/JwtAuthFilter.java` | Request-level JWT authentication |
+| `backend/.../config/SecurityConfig.java` | Spring Security configuration |
+| `backend/.../config/GlobalExceptionHandler.java` | Centralised error handling |
+| `backend/.../dto/Dtos.java` | All request/response DTOs |
+| `backend/.../service/UserService.java` | Registration, login, PIN verification |
+| `backend/.../service/VideoService.java` | YouTube API integration + caching |
+| `backend/.../service/RecommendationService.java` | Weighted recommendation engine |
+| `backend/.../controller/Controllers.java` | Auth, Content, Parent controllers |
+| `backend/.../repository/Repositories.java` | All JPA repositories |
+| `frontend/src/App.jsx` | React router setup |
+| `frontend/src/styles/global.css` | Design system (tokens, animations) |
+| `frontend/src/utils/api.js` | Axios client with JWT interceptors |
+| `frontend/src/store/authStore.js` | Zustand auth state |
+| `frontend/src/pages/LoginPage.jsx` | Login UI |
+| `frontend/src/pages/SignupPage.jsx` | 3-step signup UI |
+| `frontend/src/pages/Dashboard.jsx` | Child's home page |
+| `frontend/src/pages/VideoPage.jsx` | Video player |
+| `frontend/src/pages/SearchPage.jsx` | Search results |
+| `frontend/src/pages/CategoryPage.jsx` | Category browser + ParentPortal |
+| `frontend/src/components/common/Navbar.jsx` | Navigation + secret parent trigger |
+| `frontend/src/components/video/VideoCard.jsx` | YouTube-style video card |
